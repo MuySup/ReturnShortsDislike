@@ -1,0 +1,35 @@
+{
+  "manifest_version": 3,
+  "name": "Return YouTube Shorts Dislike",
+  "version": "1.0",
+  "description": "Adds a Dislike button next to Like on YouTube Shorts.",
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "shorts-buton-kopyalayici@local"
+    }
+  },
+  "permissions": ["tabs"],
+  "background": {
+    "scripts": ["background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://youtube.com/*",
+        "https://m.youtube.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://www.youtube.com/watch*",
+        "https://youtube.com/watch*",
+        "https://m.youtube.com/watch*"
+      ],
+      "js": ["watch.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
