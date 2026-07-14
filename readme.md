@@ -2,7 +2,7 @@
 
 A Firefox extension that adds a working **Dislike** button next to the Like button on YouTube Shorts.
 
-_****_⚠️ This project was created without much effort. It may not work properly._****_
+_****_⚠️ This project is currently in development. Soon it will be available in the Mozilla Add-ons._****_
 
 ## How it works
 
@@ -44,4 +44,4 @@ Done!
 
 ---
 
-I noticed this issue and built this project using an LLM. Because I didn't have time and don't know JavaScript, I didn't put much effort into it.
+I noticed this issue and built this project using an LLM help. Because I didn't have time and don't know soo much JavaScript.
