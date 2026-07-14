@@ -30,6 +30,17 @@ The video ID is extracted from the Shorts URL (`/shorts/<id>`) and turned into a
 **5. The real Dislike button gets clicked automatically**
 
 In that background tab, a small script detects and clicks YouTube's real Dislike button.
+ 
+
+Installation
+
+1. about:addons
+2. <img width="473" height="412" alt="image" src="https://github.com/user-attachments/assets/f29445ae-f0d4-4fc0-9fcd-0ff0fef14454" />
+3. <img width="719" height="267" alt="image" src="https://github.com/user-attachments/assets/86c83f48-06ac-4c97-bcf8-862ded8db4fb" />
+4. <img width="494" height="443" alt="image" src="https://github.com/user-attachments/assets/6059d703-64ff-4eda-b1d6-34fad29ff4fa" />
+Done!
+
+
 
 ---
 
