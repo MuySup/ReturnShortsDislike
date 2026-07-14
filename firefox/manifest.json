@@ -3,6 +3,10 @@
   "name": "Return YouTube Shorts Dislike",
   "version": "1.0",
   "description": "Adds a Dislike button next to Like on YouTube Shorts.",
+  "icons": {
+    "48": "icon.png",
+    "96": "icon.png"
+  },
   "browser_specific_settings": {
     "gecko": {
       "id": "shorts-buton-kopyalayici@local"

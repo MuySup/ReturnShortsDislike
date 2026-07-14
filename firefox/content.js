@@ -111,6 +111,16 @@
       '" fill="currentColor"></path>' +
       "</svg></div></span>";
   }
+  
+  function patchTargetIcon(target, d, viewBox) {
+    var btn = target.querySelector("button.ytSpecButtonShapeNextMono[aria-label]");
+    if (!btn) return;
+    var path = btn.querySelector("svg path[d]");
+    if (!path) return;
+    path.setAttribute("d", d);
+    var svg = path.closest("svg");
+    if (svg && viewBox) svg.setAttribute("viewBox", viewBox);
+  }
 
   function applyDislikeStyle(node, target, originalLike) {
     setIcon(node, DISLIKE_OUTLINE_D, "0 -960 960 960");
@@ -142,10 +152,10 @@
         btn.setAttribute("aria-pressed", String(prevPressed));
         if (prevPressed) {
           setIcon(node, DISLIKE_FILLED_D, "0 -960 960 960");
-          setIcon(target, LIKE_OUTLINE_D, "0 0 24 24");
+          patchTargetIcon(target, LIKE_OUTLINE_D, "0 0 24 24");
         } else {
           setIcon(node, DISLIKE_OUTLINE_D, "0 -960 960 960");
-          setIcon(target, originalLike.d, originalLike.viewBox);
+          patchTargetIcon(target, originalLike.d, originalLike.viewBox);
         }
         return;
       }
@@ -161,10 +171,10 @@
 
       if (next) {
         setIcon(node, DISLIKE_FILLED_D, "0 -960 960 960");
-        setIcon(target, LIKE_OUTLINE_D, "0 0 24 24");
+        patchTargetIcon(target, LIKE_OUTLINE_D, "0 0 24 24");
       } else {
         setIcon(node, DISLIKE_OUTLINE_D, "0 -960 960 960");
-        setIcon(target, originalLike.d, originalLike.viewBox);
+        patchTargetIcon(target, originalLike.d, originalLike.viewBox);
       }
 
       btn.dataset.loading = "true";
