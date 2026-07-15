@@ -1,0 +1,36 @@
+name: Release XPI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "firefox/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Read manifest version
+        id: version
+        run: echo "version=$(node -p "require('./firefox/manifest.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Build unsigned XPI
+        run: |
+          cd firefox
+          zip -r -FS "../return-shorts-dislike-${{ steps.version.outputs.version }}.xpi" . -x "*.DS_Store"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v${{ steps.version.outputs.version }}-${{ github.run_number }}"
+          gh release create "$TAG" "return-shorts-dislike-${{ steps.version.outputs.version }}.xpi" \
+            --title "v${{ steps.version.outputs.version }} (build ${{ github.run_number }})" \
+            --notes "Unsigned .xpi built from commit ${{ github.sha }}. Firefox blocks unsigned add-ons by default outside Developer Edition/Nightly/ESR (xpinstall.signatures.required=false), or load it temporarily via about:debugging > This Firefox > Load Temporary Add-on."

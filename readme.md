@@ -1,47 +1,25 @@
+<p align="center">
+  <img src="firefox/icon.png" width="96" alt="Return Shorts Dislike logo">
+</p>
+
 # Return YouTube Shorts Dislike
 
-A Firefox extension that adds a working **Dislike** button next to the Like button on YouTube Shorts.
+A Firefox extension that adds a working **Dislike** button next to the Like button on YouTube Shorts, and shows the real dislike count using the [Return YouTube Dislike](https://returnyoutubedislike.com/) API.
 
-_****_⚠️ This project is currently in development. Soon it will be available in the Mozilla Add-ons._****_
+_****_⚠️ This project was created without much effort. It may not work properly._****_
 
 ## How it works
 
-
 **1. A Dislike button is added next to Like**
 
-![1.png](1.png)
+![Dislike button added next to Like](readme-files/1.png)
 
-On every Shorts page, the extension finds the real Like button (`like-button-view-model`) and inserts a  "Dislike" button.
+On every Shorts page, the extension finds the real Like button and inserts a "Dislike" button right next to it.
 
-**2. A background tab is opened silently**
+**2. The dislike is sent using your own session cookies**
 
-![img_2.png](img_2.png)
-
-The extension opens a new background tab.
-
-**4. The Shorts URL is converted to a Watch URL**
-
-https://www.youtube.com/shorts/Ajftf0dF0OU
-
-https://www.youtube.com/watch?v=Ajftf0dF0OU
-
-The video ID is extracted from the Shorts URL (`/shorts/<id>`) and turned into a normal watch URL (`/watch?v=<id>`), which is what the background tab navigates to.
-
-**5. The real Dislike button gets clicked automatically**
-
-In that background tab, a small script detects and clicks YouTube's real Dislike button.
- 
-
-Installation
-
-1. about:addons
-2. <img width="473" height="412" alt="image" src="https://github.com/user-attachments/assets/f29445ae-f0d4-4fc0-9fcd-0ff0fef14454" />
-3. <img width="719" height="267" alt="image" src="https://github.com/user-attachments/assets/86c83f48-06ac-4c97-bcf8-862ded8db4fb" />
-4. <img width="494" height="443" alt="image" src="https://github.com/user-attachments/assets/6059d703-64ff-4eda-b1d6-34fad29ff4fa" />
-Done!
-
-
+Clicking it sends the same request YouTube's own Dislike button sends, straight from the page using your existing login cookies — no extra tab, no page reload.
 
 ---
 
-I noticed this issue and built this project using an LLM help. Because I didn't have time and don't know soo much JavaScript.
+###### I noticed this issue and built this project using an LLM help. Because I didn't have time and don't know soo much JavaScript.

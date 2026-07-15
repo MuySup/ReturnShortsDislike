@@ -2,7 +2,8 @@
   var DONE = "data-shorts-copy-done";
   var CLONE = "data-shorts-copy-clone";
   var DISLIKE_TEXT = "I don't like this";
-  var currentLoadingButton = null;
+  var loadingButtons = {};
+  var requestCounter = 0;
 
   var LIKE_OUTLINE_D =
     "M16.25 2.5c3.823 0 6.75 3.232 6.75 7 0 4.436-2.806 7.696-5.224 9.699-2.46 2.038-4.906 3.104-4.98 3.135l-.796.347-.797-.347c-.073-.031-2.52-1.097-4.98-3.135C3.807 17.196 1 13.936 1 9.5c0-3.768 2.927-7 6.75-7 1.629 0 3.1.596 4.25 1.565A6.559 6.559 0 0 1 16.25 2.5zm0 2c-1.861 0-3.47 1.128-4.25 2.768C11.22 5.628 9.611 4.5 7.75 4.5 5.127 4.5 3 6.74 3 9.5c0 7.09 9 11 9 11s9-3.91 9-11c0-2.76-2.127-5-4.75-5z";
@@ -12,6 +13,18 @@
 
   var DISLIKE_FILLED_D =
     "M600-400v-80h320v80H600ZM440-120 313-234q-72-65-123.5-116t-85-96q-33.5-45-49-87T40-621q0-94 63-156.5T260-840q52 0 99 21.5t81 61.5q34-40 81-61.5t99-21.5q85 0 142.5 51.5T834-668q-18-7-36-10.5t-35-3.5q-101 0-172 70.5T520-440q0 52 21 98.5t59 79.5q-19 17-49.5 43.5T498-172l-58 52Z";
+
+  var HIDE_OUTLINE_D =
+    "m791-55-91-91q-49 32-104.5 49T480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-60 17-115.5T146-700l-91-91 57-57 736 736-57 57ZM480-160q43 0 83.5-11t78.5-33L204-642q-22 38-33 78.5T160-480q0 133 93.5 226.5T480-160Zm334-100-58-58q22-38 33-78.5t11-83.5q0-133-93.5-226.5T480-800q-43 0-83.5 11T318-756l-58-58q49-32 104.5-49T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 60-17 115.5T814-260ZM537-537ZM423-423Z";
+
+  var HIDE_FILLED_D =
+    "m791-55-91-91q-49 32-104.5 49T480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-60 17-115.5T146-700l-91-91 57-57 736 736-57 57Zm23-205L260-814q49-32 104.5-49T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 60-17 115.5T814-260Z";
+
+  var WARNING_D =
+    "M480-280q17 0 28.5-11.5T520-320q0-17-11.5-28.5T480-360q-17 0-28.5 11.5T440-320q0 17 11.5 28.5T480-280Zm-40-160h80v-240h-80v240Zm40 360q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z";
+
+  var NOT_INTERESTED_TEXT = "Not interested";
+  var NOT_SIGNED_IN_TEXT = "Not signed in";
 
   var LIKE_HOST_SELECTOR = "like-button-view-model.ytLikeButtonViewModelHost";
 
@@ -32,7 +45,7 @@
     if (existing) existing.remove();
   }
 
-  function showTip(btn) {
+  function showTip(btn, text) {
     removeTip();
     var tip = document.createElement("div");
     tip.id = "shorts-dislike-tip";
@@ -40,7 +53,7 @@
     tip.className = "ytPopoverComponentHost ytTooltipContainerDefaultTooltipContent";
 
     var span = document.createElement("span");
-    span.textContent = DISLIKE_TEXT;
+    span.textContent = text;
     tip.appendChild(span);
     document.body.appendChild(tip);
 
@@ -57,6 +70,324 @@
     var match = location.pathname.match(/\/shorts\/([^/?#]+)/);
     if (!match) return null;
     return "https://www.youtube.com/watch?v=" + match[1];
+  }
+
+  function shortsVideoId() {
+    var match = location.pathname.match(/\/shorts\/([^/?#]+)/);
+    return match ? match[1] : null;
+  }
+
+  // Multiple Shorts items (previous/next video) can exist in the DOM at the
+  // same time, so location.pathname doesn't always match the item "target"
+  // belongs to. We read the video ID directly from the item's own renderer
+  // data (ytd-reel-video-renderer.data.videoId), falling back to its href,
+  // and finally to location.pathname.
+  function videoIdForElement(el) {
+    var node = el;
+    while (node && node !== document.documentElement) {
+      if (node.tagName === "YTD-REEL-VIDEO-RENDERER") {
+        if (node.data && node.data.videoId) return node.data.videoId;
+        var link = node.querySelector('a[href*="/shorts/"]');
+        if (link) {
+          var match = link.getAttribute("href").match(/\/shorts\/([^/?#]+)/);
+          if (match) return match[1];
+        }
+        break;
+      }
+      node = node.parentElement;
+    }
+    return shortsVideoId();
+  }
+
+  // Looks up the "Not interested" feedbackToken from the reel item's own
+  // menu data (ytd-reel-video-renderer.data.menu), the same opaque token
+  // YouTube's own "..." menu would send when that item is clicked. There's
+  // no stable/simple request shape for this action like there is for
+  // like/dislike, so it depends on YouTube's current menu data layout.
+  function feedbackTokenForElement(el) {
+    var node = el;
+    while (node && node !== document.documentElement) {
+      if (node.tagName === "YTD-REEL-VIDEO-RENDERER") {
+        var data = node.data;
+        var items = data && data.menu && data.menu.menuRenderer && data.menu.menuRenderer.items;
+        if (items) {
+          for (var i = 0; i < items.length; i++) {
+            var itemRenderer = items[i] && items[i].menuServiceItemRenderer;
+            if (!itemRenderer) continue;
+            var runs = itemRenderer.text && itemRenderer.text.runs;
+            var label = runs && runs[0] && runs[0].text;
+            if (label && /not interested/i.test(label)) {
+              var endpoint = itemRenderer.serviceEndpoint;
+              if (endpoint && endpoint.feedbackEndpoint && endpoint.feedbackEndpoint.feedbackToken) {
+                return endpoint.feedbackEndpoint.feedbackToken;
+              }
+            }
+          }
+        }
+        break;
+      }
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  function formatCount(n) {
+    if (n < 1000) return String(n);
+    var divisor = n < 1000000 ? 1000 : n < 1000000000 ? 1000000 : 1000000000;
+    var suffix = divisor === 1000 ? "B" : divisor === 1000000 ? "Mn" : "Mr";
+    var value = n / divisor;
+    var decimals = value < 10 ? 1 : 0;
+    var text = value.toFixed(decimals).replace(".", ",");
+    if (decimals === 1 && text.slice(-2) === ",0") text = text.slice(0, -2);
+    return text + " " + suffix;
+  }
+
+  function apiErrorMessage(status) {
+    if (status === 400) return "400 Bad Request";
+    if (status === 404) return '404 "Not Found"';
+    if (status === 429) return "429 Rate Limited";
+    return status ? status + " Error" : "Connection Error";
+  }
+
+  var cookieSpeedupEnabled = true;
+  // "Not interested" mode is still under development and disabled in the
+  // popup UI, so this is intentionally never read as "hide" for now.
+  var dislikeMode = "dislike";
+
+  // Guards against the "storage" permission not being active yet (e.g. the
+  // extension hasn't been reloaded after a manifest change) so a missing
+  // browser.storage API can't take down the rest of this content script.
+  function loadSettings() {
+    try {
+      browser.storage.local.get("cookieSpeedup").then(function (result) {
+        // Default to enabled for first-time users (no stored value yet).
+        cookieSpeedupEnabled = result.cookieSpeedup !== false;
+      });
+      browser.storage.onChanged.addListener(function (changes, area) {
+        if (area !== "local") return;
+        if (changes.cookieSpeedup) cookieSpeedupEnabled = changes.cookieSpeedup.newValue !== false;
+      });
+    } catch (e) {}
+  }
+
+  // Reads INNERTUBE_API_KEY / INNERTUBE_CONTEXT out of YouTube's own inline
+  // ytcfg.set(...) bootstrap script. Content scripts run in an isolated JS
+  // world and can't reach window.ytcfg directly, but the DOM (and therefore
+  // script tag text) is shared, so this is the simplest bridge.
+  function extractBalancedObject(text, start) {
+    if (text[start] !== "{") return null;
+    var depth = 0;
+    var inString = false;
+    var stringChar = "";
+    var escaped = false;
+    for (var i = start; i < text.length; i++) {
+      var ch = text[i];
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (ch === "\\") escaped = true;
+        else if (ch === stringChar) inString = false;
+        continue;
+      }
+      if (ch === '"' || ch === "'") {
+        inString = true;
+        stringChar = ch;
+        continue;
+      }
+      if (ch === "{") depth++;
+      else if (ch === "}") {
+        depth--;
+        if (depth === 0) return text.slice(start, i + 1);
+      }
+    }
+    return null;
+  }
+
+  function getInnertubeConfig() {
+    var scripts = document.getElementsByTagName("script");
+    for (var i = 0; i < scripts.length; i++) {
+      var text = scripts[i].textContent;
+      if (!text || text.indexOf("INNERTUBE_API_KEY") === -1) continue;
+
+      var searchIdx = 0;
+      var idx;
+      while ((idx = text.indexOf("ytcfg.set(", searchIdx)) !== -1) {
+        var start = text.indexOf("(", idx) + 1;
+        searchIdx = idx + 1;
+        var json = extractBalancedObject(text, start);
+        if (!json) continue;
+        try {
+          var parsed = JSON.parse(json);
+        } catch (e) {
+          continue;
+        }
+        if (parsed && parsed.INNERTUBE_API_KEY && parsed.INNERTUBE_CONTEXT) {
+          return { apiKey: parsed.INNERTUBE_API_KEY, context: parsed.INNERTUBE_CONTEXT };
+        }
+      }
+    }
+    return null;
+  }
+
+  var abortControllers = {};
+
+  function getCookie(name) {
+    var match = document.cookie.match(new RegExp("(?:^|; )" + name + "=([^;]*)"));
+    return match ? decodeURIComponent(match[1]) : null;
+  }
+
+  // YouTube's own first-party requests authenticate with a SAPISIDHASH
+  // signature derived from the (JS-readable) SAPISID cookie, not cookies
+  // alone -- without it the API responds 401 even though the cookies are
+  // sent. See Google's "SAPISIDHASH" auth scheme used across its web apps.
+  function computeSapisidHash(sapisid, origin) {
+    var timestamp = Math.floor(Date.now() / 1000);
+    var input = timestamp + " " + sapisid + " " + origin;
+    var data = new TextEncoder().encode(input);
+    return crypto.subtle.digest("SHA-1", data).then(function (hashBuffer) {
+      var hex = Array.prototype.map
+        .call(new Uint8Array(hashBuffer), function (b) {
+          return b.toString(16).padStart(2, "0");
+        })
+        .join("");
+      return timestamp + "_" + hex;
+    });
+  }
+
+  function buildAuthHeaders() {
+    var origin = "https://www.youtube.com";
+    var sapisid = getCookie("SAPISID") || getCookie("__Secure-3PAPISID");
+    var authPromise = sapisid ? computeSapisidHash(sapisid, origin) : Promise.resolve(null);
+    return authPromise.then(function (hash) {
+      var headers = { "Content-Type": "application/json" };
+      if (hash) {
+        headers["Authorization"] = "SAPISIDHASH " + hash;
+        headers["X-Origin"] = origin;
+        headers["X-Goog-AuthUser"] = "0";
+      }
+      return headers;
+    });
+  }
+
+  // Sends the same requests YouTube's own frontend makes when the real
+  // Like/Dislike button is clicked, using the session cookies already
+  // present for this tab. Avoids opening a background tab entirely.
+  // action is "dislike" (press) or "removelike" (undo, back to indifferent).
+  // onDone(ok, status) -- status is 0 on network/setup failure.
+  function sendLikeActionViaCookie(action, videoId, requestId, onDone) {
+    var cfg = getInnertubeConfig();
+    if (!cfg) {
+      onDone(false, 0);
+      return;
+    }
+
+    var controller = new AbortController();
+    abortControllers[requestId] = controller;
+
+    buildAuthHeaders()
+      .then(function (headers) {
+        return fetch(
+          "https://www.youtube.com/youtubei/v1/like/" +
+            action +
+            "?key=" +
+            encodeURIComponent(cfg.apiKey) +
+            "&prettyPrint=false",
+          {
+            method: "POST",
+            credentials: "same-origin",
+            signal: controller.signal,
+            headers: headers,
+            body: JSON.stringify({ context: cfg.context, target: { videoId: videoId } }),
+          }
+        );
+      })
+      .then(function (res) {
+        delete abortControllers[requestId];
+        onDone(res.ok, res.status);
+      })
+      .catch(function () {
+        delete abortControllers[requestId];
+        onDone(false, 0);
+      });
+  }
+
+  // Sends the "Not interested" feedback action (the same request YouTube's
+  // own "..." menu sends), using a feedbackToken read off the reel item's
+  // own menu data. Only usable via the cookie-speedup path -- there's no
+  // "Not interested" control reachable by loading the plain watch page, so
+  // the old background-tab method can't support this action at all.
+  function sendFeedbackViaCookie(feedbackToken, requestId, onDone) {
+    var cfg = getInnertubeConfig();
+    if (!cfg) {
+      onDone(false, 0);
+      return;
+    }
+
+    var controller = new AbortController();
+    abortControllers[requestId] = controller;
+
+    buildAuthHeaders()
+      .then(function (headers) {
+        return fetch(
+          "https://www.youtube.com/youtubei/v1/feedback?key=" +
+            encodeURIComponent(cfg.apiKey) +
+            "&prettyPrint=false",
+          {
+            method: "POST",
+            credentials: "same-origin",
+            signal: controller.signal,
+            headers: headers,
+            body: JSON.stringify({
+              context: cfg.context,
+              feedbackTokens: [feedbackToken],
+              isFeedbackTokenUnencrypted: false,
+              shouldMerge: false,
+            }),
+          }
+        );
+      })
+      .then(function (res) {
+        delete abortControllers[requestId];
+        onDone(res.ok, res.status);
+      })
+      .catch(function () {
+        delete abortControllers[requestId];
+        onDone(false, 0);
+      });
+  }
+
+  var dislikeCountCache = {};
+
+  function fetchDislikeCount(videoId, callback) {
+    if (dislikeCountCache.hasOwnProperty(videoId)) {
+      callback({ count: dislikeCountCache[videoId] });
+      return;
+    }
+    fetch("https://returnyoutubedislikeapi.com/votes?videoId=" + encodeURIComponent(videoId))
+      .then(function (res) {
+        if (!res.ok) {
+          callback({ error: apiErrorMessage(res.status) });
+          return null;
+        }
+        return res.json();
+      })
+      .then(function (data) {
+        if (!data) return;
+        dislikeCountCache[videoId] = data.dislikes;
+        callback({ count: data.dislikes });
+      })
+      .catch(function () {
+        callback({ error: apiErrorMessage(0) });
+      });
+  }
+
+  // Optimistically reflects a just-sent dislike/undo in the displayed count
+  // instead of waiting on the third-party RYD API to catch up. Only touches
+  // videos where we already have a known baseline count.
+  function bumpDisplayedCount(node, videoId, delta) {
+    if (!dislikeCountCache.hasOwnProperty(videoId)) return;
+    dislikeCountCache[videoId] = Math.max(0, dislikeCountCache[videoId] + delta);
+    var text = node.querySelector(".ytSpecButtonShapeWithLabelLabel span");
+    if (text) text.textContent = formatCount(dislikeCountCache[videoId]);
   }
 
   function ensureSpinnerStyle() {
@@ -111,7 +442,11 @@
       '" fill="currentColor"></path>' +
       "</svg></div></span>";
   }
-  
+
+  // Updates only the "d" and viewBox of the path while keeping YouTube's own
+  // like button DOM nodes intact. Rebuilding this button with innerHTML like
+  // setIcon() does would break YouTube's internal reactivity bindings, so the
+  // real like click could no longer update the icon fill.
   function patchTargetIcon(target, d, viewBox) {
     var btn = target.querySelector("button.ytSpecButtonShapeNextMono[aria-label]");
     if (!btn) return;
@@ -122,29 +457,109 @@
     if (svg && viewBox) svg.setAttribute("viewBox", viewBox);
   }
 
+  // Swaps the button to a warning state when a cookie-speedup request comes
+  // back 401 (not signed in) -- cookies alone don't mean an authenticated
+  // session, so this is the only reliable place to surface that.
+  function markUnauthenticated(node, btn) {
+    setIcon(node, WARNING_D, "0 -960 960 960");
+    var text = node.querySelector(".ytSpecButtonShapeWithLabelLabel span");
+    if (text) text.textContent = NOT_SIGNED_IN_TEXT;
+    btn.dataset.pressed = "false";
+    btn.setAttribute("aria-pressed", "false");
+  }
+
   function applyDislikeStyle(node, target, originalLike) {
-    setIcon(node, DISLIKE_OUTLINE_D, "0 -960 960 960");
+    var hideMode = dislikeMode === "hide";
+    var tipText = hideMode ? NOT_INTERESTED_TEXT : DISLIKE_TEXT;
+
+    setIcon(node, hideMode ? HIDE_OUTLINE_D : DISLIKE_OUTLINE_D, "0 -960 960 960");
 
     var text = node.querySelector(".ytSpecButtonShapeWithLabelLabel span");
-    if (text) text.textContent = "Dislike";
+    if (text) {
+      if (hideMode) {
+        text.textContent = NOT_INTERESTED_TEXT;
+      } else {
+        text.textContent = "Dislike";
+        var videoId = videoIdForElement(target);
+        if (videoId) {
+          fetchDislikeCount(videoId, function (result) {
+            if (result.error) {
+              text.textContent = result.error;
+              return;
+            }
+            text.textContent = formatCount(result.count);
+          });
+        }
+      }
+    }
 
     var btn = node.querySelector("button[aria-label]");
     if (!btn) return;
 
-    btn.setAttribute("aria-label", DISLIKE_TEXT);
+    btn.setAttribute("aria-label", tipText);
     btn.setAttribute("aria-pressed", "false");
 
     btn.addEventListener("mouseenter", function () {
-      showTip(btn);
+      showTip(btn, tipText);
     });
     btn.addEventListener("mouseleave", removeTip);
+
+    if (hideMode) {
+      btn.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (btn.dataset.loading === "true" || btn.dataset.pressed === "true") return;
+
+        if (!cookieSpeedupEnabled) {
+          console.warn("[Return Shorts Dislike] Not interested requires \"Speed up using cookies\" to be enabled.");
+          return;
+        }
+        var token = feedbackTokenForElement(target);
+        if (!token) {
+          console.warn("[Return Shorts Dislike] Could not find a feedbackToken for this Short.", target);
+          return;
+        }
+
+        btn.dataset.pressed = "true";
+        btn.setAttribute("aria-pressed", "true");
+
+        var requestId = "req-" + ++requestCounter;
+        btn.dataset.requestId = requestId;
+        loadingButtons[requestId] = btn;
+        btn.dataset.loading = "true";
+        setSpinner(btn, true);
+
+        sendFeedbackViaCookie(token, requestId, function (ok, status) {
+          stopLoading(btn);
+          if (!ok) {
+            if (status === 401) {
+              markUnauthenticated(node, btn);
+            } else {
+              console.warn("[Return Shorts Dislike] feedback request failed", status);
+              btn.dataset.pressed = "false";
+              btn.setAttribute("aria-pressed", "false");
+            }
+            return;
+          }
+          setIcon(node, HIDE_FILLED_D, "0 -960 960 960");
+        });
+      });
+      return;
+    }
 
     btn.addEventListener("click", function (e) {
       e.preventDefault();
       e.stopPropagation();
 
       if (btn.dataset.loading === "true") {
-        browser.runtime.sendMessage({ type: "cancel-open-bg-tab" });
+        var pendingRequestId = btn.dataset.requestId;
+        if (cookieSpeedupEnabled && abortControllers[pendingRequestId]) {
+          abortControllers[pendingRequestId].abort();
+          delete abortControllers[pendingRequestId];
+        } else {
+          browser.runtime.sendMessage({ type: "cancel-open-bg-tab", requestId: pendingRequestId });
+        }
         stopLoading(btn);
 
         var prevPressed = btn.dataset.pendingPrevPressed === "true";
@@ -160,7 +575,10 @@
         return;
       }
 
-      var url = watchUrlFromShorts();
+      var videoIdForClick = videoIdForElement(target) || shortsVideoId();
+      var url = videoIdForClick
+        ? "https://www.youtube.com/watch?v=" + videoIdForClick
+        : watchUrlFromShorts();
       if (!url) return;
 
       var pressed = btn.dataset.pressed === "true";
@@ -177,17 +595,40 @@
         patchTargetIcon(target, originalLike.d, originalLike.viewBox);
       }
 
+      var requestId = "req-" + ++requestCounter;
+      btn.dataset.requestId = requestId;
+      btn.dataset.videoId = videoIdForClick || "";
+      loadingButtons[requestId] = btn;
+
       btn.dataset.loading = "true";
       setSpinner(btn, true);
-      currentLoadingButton = btn;
-      browser.runtime.sendMessage({ type: "open-bg-tab", url: url });
+
+      if (cookieSpeedupEnabled && videoIdForClick) {
+        var action = next ? "dislike" : "removelike";
+        sendLikeActionViaCookie(action, videoIdForClick, requestId, function (ok, status) {
+          stopLoading(btn);
+          if (!ok) {
+            if (status === 401) markUnauthenticated(node, btn);
+            return;
+          }
+          bumpDisplayedCount(node, videoIdForClick, action === "dislike" ? 1 : -1);
+        });
+      } else {
+        browser.runtime.sendMessage({ type: "open-bg-tab", url: url, requestId: requestId });
+      }
     });
 
     var likeBtn = target.querySelector("button.ytSpecButtonShapeNextMono[aria-label]");
     if (likeBtn) {
       likeBtn.addEventListener("click", function () {
         if (btn.dataset.loading === "true") {
-          browser.runtime.sendMessage({ type: "cancel-open-bg-tab" });
+          var pendingRequestId2 = btn.dataset.requestId;
+          if (cookieSpeedupEnabled && abortControllers[pendingRequestId2]) {
+            abortControllers[pendingRequestId2].abort();
+            delete abortControllers[pendingRequestId2];
+          } else {
+            browser.runtime.sendMessage({ type: "cancel-open-bg-tab", requestId: pendingRequestId2 });
+          }
           stopLoading(btn);
         }
         if (btn.dataset.pressed === "true") {
@@ -202,7 +643,11 @@
   function stopLoading(btn) {
     setSpinner(btn, false);
     btn.dataset.loading = "false";
-    if (currentLoadingButton === btn) currentLoadingButton = null;
+    var requestId = btn.dataset.requestId;
+    if (requestId) {
+      if (loadingButtons[requestId] === btn) delete loadingButtons[requestId];
+      delete btn.dataset.requestId;
+    }
   }
 
   function run() {
@@ -246,11 +691,18 @@
   }, 500);
 
   browser.runtime.onMessage.addListener(function (message) {
-    if (message && message.type === "bg-tab-loaded" && currentLoadingButton) {
-      stopLoading(currentLoadingButton);
+    if (message && message.type === "bg-tab-loaded" && message.requestId) {
+      var btn = loadingButtons[message.requestId];
+      if (btn) {
+        var node = btn.closest(LIKE_HOST_SELECTOR);
+        var videoId = btn.dataset.videoId;
+        if (node && videoId) bumpDisplayedCount(node, videoId, 1);
+        stopLoading(btn);
+      }
     }
   });
 
   ensureSpinnerStyle();
+  loadSettings();
   run();
 })();
