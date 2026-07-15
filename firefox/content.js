@@ -77,11 +77,6 @@
     return match ? match[1] : null;
   }
 
-  // Multiple Shorts items (previous/next video) can exist in the DOM at the
-  // same time, so location.pathname doesn't always match the item "target"
-  // belongs to. We read the video ID directly from the item's own renderer
-  // data (ytd-reel-video-renderer.data.videoId), falling back to its href,
-  // and finally to location.pathname.
   function videoIdForElement(el) {
     var node = el;
     while (node && node !== document.documentElement) {
@@ -99,11 +94,6 @@
     return shortsVideoId();
   }
 
-  // Looks up the "Not interested" feedbackToken from the reel item's own
-  // menu data (ytd-reel-video-renderer.data.menu), the same opaque token
-  // YouTube's own "..." menu would send when that item is clicked. There's
-  // no stable/simple request shape for this action like there is for
-  // like/dislike, so it depends on YouTube's current menu data layout.
   function feedbackTokenForElement(el) {
     var node = el;
     while (node && node !== document.documentElement) {
@@ -150,17 +140,11 @@
   }
 
   var cookieSpeedupEnabled = true;
-  // "Not interested" mode is still under development and disabled in the
-  // popup UI, so this is intentionally never read as "hide" for now.
   var dislikeMode = "dislike";
 
-  // Guards against the "storage" permission not being active yet (e.g. the
-  // extension hasn't been reloaded after a manifest change) so a missing
-  // browser.storage API can't take down the rest of this content script.
   function loadSettings() {
     try {
       browser.storage.local.get("cookieSpeedup").then(function (result) {
-        // Default to enabled for first-time users (no stored value yet).
         cookieSpeedupEnabled = result.cookieSpeedup !== false;
       });
       browser.storage.onChanged.addListener(function (changes, area) {
@@ -170,10 +154,6 @@
     } catch (e) {}
   }
 
-  // Reads INNERTUBE_API_KEY / INNERTUBE_CONTEXT out of YouTube's own inline
-  // ytcfg.set(...) bootstrap script. Content scripts run in an isolated JS
-  // world and can't reach window.ytcfg directly, but the DOM (and therefore
-  // script tag text) is shared, so this is the simplest bridge.
   function extractBalancedObject(text, start) {
     if (text[start] !== "{") return null;
     var depth = 0;
@@ -235,10 +215,6 @@
     return match ? decodeURIComponent(match[1]) : null;
   }
 
-  // YouTube's own first-party requests authenticate with a SAPISIDHASH
-  // signature derived from the (JS-readable) SAPISID cookie, not cookies
-  // alone -- without it the API responds 401 even though the cookies are
-  // sent. See Google's "SAPISIDHASH" auth scheme used across its web apps.
   function computeSapisidHash(sapisid, origin) {
     var timestamp = Math.floor(Date.now() / 1000);
     var input = timestamp + " " + sapisid + " " + origin;
@@ -268,11 +244,6 @@
     });
   }
 
-  // Sends the same requests YouTube's own frontend makes when the real
-  // Like/Dislike button is clicked, using the session cookies already
-  // present for this tab. Avoids opening a background tab entirely.
-  // action is "dislike" (press) or "removelike" (undo, back to indifferent).
-  // onDone(ok, status) -- status is 0 on network/setup failure.
   function sendLikeActionViaCookie(action, videoId, requestId, onDone) {
     var cfg = getInnertubeConfig();
     if (!cfg) {
@@ -310,11 +281,6 @@
       });
   }
 
-  // Sends the "Not interested" feedback action (the same request YouTube's
-  // own "..." menu sends), using a feedbackToken read off the reel item's
-  // own menu data. Only usable via the cookie-speedup path -- there's no
-  // "Not interested" control reachable by loading the plain watch page, so
-  // the old background-tab method can't support this action at all.
   function sendFeedbackViaCookie(feedbackToken, requestId, onDone) {
     var cfg = getInnertubeConfig();
     if (!cfg) {
@@ -380,9 +346,6 @@
       });
   }
 
-  // Optimistically reflects a just-sent dislike/undo in the displayed count
-  // instead of waiting on the third-party RYD API to catch up. Only touches
-  // videos where we already have a known baseline count.
   function bumpDisplayedCount(node, videoId, delta) {
     if (!dislikeCountCache.hasOwnProperty(videoId)) return;
     dislikeCountCache[videoId] = Math.max(0, dislikeCountCache[videoId] + delta);
@@ -415,10 +378,23 @@
         spinner.style.alignItems = "center";
         spinner.style.justifyContent = "center";
         spinner.style.pointerEvents = "none";
-        spinner.innerHTML =
-          '<svg width="18" height="18" viewBox="0 0 24 24" style="animation: shorts-dislike-spin .8s linear infinite;">' +
-          '<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="40 16" stroke-linecap="round"></circle>' +
-          "</svg>";
+        var SVG_NS = "http://www.w3.org/2000/svg";
+        var spinnerSvg = document.createElementNS(SVG_NS, "svg");
+        spinnerSvg.setAttribute("width", "18");
+        spinnerSvg.setAttribute("height", "18");
+        spinnerSvg.setAttribute("viewBox", "0 0 24 24");
+        spinnerSvg.style.animation = "shorts-dislike-spin .8s linear infinite";
+        var spinnerCircle = document.createElementNS(SVG_NS, "circle");
+        spinnerCircle.setAttribute("cx", "12");
+        spinnerCircle.setAttribute("cy", "12");
+        spinnerCircle.setAttribute("r", "9");
+        spinnerCircle.setAttribute("fill", "none");
+        spinnerCircle.setAttribute("stroke", "currentColor");
+        spinnerCircle.setAttribute("stroke-width", "2.5");
+        spinnerCircle.setAttribute("stroke-dasharray", "40 16");
+        spinnerCircle.setAttribute("stroke-linecap", "round");
+        spinnerSvg.appendChild(spinnerCircle);
+        spinner.appendChild(spinnerSvg);
         if (getComputedStyle(btn).position === "static") btn.style.position = "relative";
         btn.appendChild(spinner);
       }
@@ -431,22 +407,42 @@
   function setIcon(node, d, viewBox) {
     var iconBox = node.querySelector(".ytSpecButtonShapeNextIcon");
     if (!iconBox) return;
-    iconBox.innerHTML =
-      '<span class="yt-icon-shape style-scope yt-icon ytSpecIconShapeHost">' +
-      '<div style="width: 100%; height: 100%; display: block; fill: currentcolor;">' +
-      '<svg width="24" height="24" viewBox="' +
-      viewBox +
-      '" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false" aria-hidden="true" style="pointer-events: none; display: inherit; width: 100%; height: 100%;">' +
-      '<path d="' +
-      d +
-      '" fill="currentColor"></path>' +
-      "</svg></div></span>";
+
+    var SVG_NS = "http://www.w3.org/2000/svg";
+
+    var span = document.createElement("span");
+    span.className = "yt-icon-shape style-scope yt-icon ytSpecIconShapeHost";
+
+    var div = document.createElement("div");
+    div.style.width = "100%";
+    div.style.height = "100%";
+    div.style.display = "block";
+    div.style.fill = "currentcolor";
+
+    var svg = document.createElementNS(SVG_NS, "svg");
+    svg.setAttribute("width", "24");
+    svg.setAttribute("height", "24");
+    svg.setAttribute("viewBox", viewBox);
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("focusable", "false");
+    svg.setAttribute("aria-hidden", "true");
+    svg.style.pointerEvents = "none";
+    svg.style.display = "inherit";
+    svg.style.width = "100%";
+    svg.style.height = "100%";
+
+    var path = document.createElementNS(SVG_NS, "path");
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "currentColor");
+
+    svg.appendChild(path);
+    div.appendChild(svg);
+    span.appendChild(div);
+
+    iconBox.textContent = "";
+    iconBox.appendChild(span);
   }
 
-  // Updates only the "d" and viewBox of the path while keeping YouTube's own
-  // like button DOM nodes intact. Rebuilding this button with innerHTML like
-  // setIcon() does would break YouTube's internal reactivity bindings, so the
-  // real like click could no longer update the icon fill.
   function patchTargetIcon(target, d, viewBox) {
     var btn = target.querySelector("button.ytSpecButtonShapeNextMono[aria-label]");
     if (!btn) return;
@@ -457,9 +453,6 @@
     if (svg && viewBox) svg.setAttribute("viewBox", viewBox);
   }
 
-  // Swaps the button to a warning state when a cookie-speedup request comes
-  // back 401 (not signed in) -- cookies alone don't mean an authenticated
-  // session, so this is the only reliable place to surface that.
   function markUnauthenticated(node, btn) {
     setIcon(node, WARNING_D, "0 -960 960 960");
     var text = node.querySelector(".ytSpecButtonShapeWithLabelLabel span");

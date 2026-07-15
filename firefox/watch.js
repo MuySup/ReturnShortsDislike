@@ -21,9 +21,6 @@
     if (!btn) return false;
 
     if (btn.getAttribute("aria-pressed") !== "true") {
-      // Clicking fires an async dislike request; the background script
-      // waits for that network request to complete before closing this tab,
-      // so we don't report done here.
       btn.click();
     } else {
       browser.runtime.sendMessage({ type: "auto-dislike-done" });

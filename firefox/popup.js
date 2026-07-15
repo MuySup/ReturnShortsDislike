@@ -82,7 +82,6 @@
     var cookieSwitch = document.getElementById("cookieSpeedupSwitch");
     try {
       browser.storage.local.get("cookieSpeedup").then(function (result) {
-        // Default to enabled for first-time users (no stored value yet).
         if (result.cookieSpeedup !== false) cookieSwitch.classList.add("on");
       }, function (err) {
         console.error("cookieSpeedup get failed", err);

@@ -38,11 +38,6 @@ browser.runtime.onMessage.addListener(function (message, sender) {
     browser.tabs.create({ url: withMarker(message.url), active: false }).then(function (tab) {
       var watchTabId = tab.id;
 
-      // Don't close the tab right after the click event fires: YouTube's own
-      // dislike POST request (.../youtubei/v1/like/dislike) is async and can
-      // take well over half a second even on a good connection. Closing the
-      // tab before that request completes cancels it, so we wait for the
-      // actual network request to finish instead of a fixed delay.
       var webRequestListener = function () {
         finish(watchTabId, true);
       };
