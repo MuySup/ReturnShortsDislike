@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Return YouTube Shorts Dislike",
-  "version": "1.1.4",
+  "version": "1.1.7",
   "description": "Adds a Dislike button next to Like on YouTube Shorts.",
   "homepage_url": "https://github.com/MuySup/ReturnShortsDislike",
   "icons": {
@@ -18,7 +18,7 @@
       }
     },
     "gecko_android": {
-      "strict_min_version": "142.0"
+      "strict_min_version": null
     }
   },
   "permissions": ["tabs", "webRequest", "storage"],
