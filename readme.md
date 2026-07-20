@@ -8,8 +8,6 @@
 
 A Firefox extension that adds a working **Dislike** button next to the Like button on YouTube Shorts, and shows the real dislike count using the [Return YouTube Dislike](https://returnyoutubedislike.com/) API.
 
-_****_⚠️ This project is currently in development. Soon it will be available in the Mozilla Add-ons._****_
-
 ## How it works
 
 **1. A Dislike button is added next to Like**
