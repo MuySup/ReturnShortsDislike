@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Return YouTube Shorts Dislike",
-  "version": "1.1.8",
+  "version": "1.2.0",
   "description": "Adds a Dislike button next to Like on YouTube Shorts.",
   "homepage_url": "https://github.com/MuySup/ReturnShortsDislike",
   "icons": {
