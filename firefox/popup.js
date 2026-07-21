@@ -28,6 +28,7 @@
   function setupModeSwitch() {
     var options = document.querySelectorAll(".mode-option");
     var indicator = document.getElementById("modeIndicator");
+    var hideModeWarning = document.getElementById("hideModeWarning");
 
     function moveIndicatorTo(option) {
       indicator.style.left = option.offsetLeft + "px";
@@ -40,6 +41,7 @@
       });
       option.classList.add("active");
       moveIndicatorTo(option);
+      hideModeWarning.classList.toggle("visible", option.dataset.mode === "hide");
     }
 
     options.forEach(function (option) {
@@ -79,25 +81,25 @@
       panel.classList.toggle("open");
     });
 
-    var cookieSwitch = document.getElementById("cookieSpeedupSwitch");
+    var dislikeApiSwitch = document.getElementById("dislikeApiSwitch");
     try {
-      browser.storage.local.get("cookieSpeedup").then(function (result) {
-        if (result.cookieSpeedup !== false) cookieSwitch.classList.add("on");
+      browser.storage.local.get("showDislikeCount").then(function (result) {
+        if (result.showDislikeCount !== false) dislikeApiSwitch.classList.add("on");
       }, function (err) {
-        console.error("cookieSpeedup get failed", err);
+        console.error("showDislikeCount get failed", err);
       });
     } catch (e) {
-      console.error("cookieSpeedup get threw", e);
+      console.error("showDislikeCount get threw", e);
     }
-    document.getElementById("cookieSpeedupOption").addEventListener("click", function () {
-      var enabled = !cookieSwitch.classList.contains("on");
-      cookieSwitch.classList.toggle("on", enabled);
+    document.getElementById("dislikeApiOption").addEventListener("click", function () {
+      var enabled = !dislikeApiSwitch.classList.contains("on");
+      dislikeApiSwitch.classList.toggle("on", enabled);
       try {
-        browser.storage.local.set({ cookieSpeedup: enabled }).catch(function (err) {
-          console.error("cookieSpeedup set failed", err);
+        browser.storage.local.set({ showDislikeCount: enabled }).catch(function (err) {
+          console.error("showDislikeCount set failed", err);
         });
       } catch (e) {
-        console.error("cookieSpeedup set threw", e);
+        console.error("showDislikeCount set threw", e);
       }
     });
   }

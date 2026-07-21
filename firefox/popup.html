@@ -206,6 +206,38 @@
     pointer-events: none;
   }
 
+  .experimental-badge {
+    display: inline-block;
+    padding: 1px 6px;
+    background: var(--md-error-container);
+    border-radius: 4px;
+    line-height: 1.4;
+  }
+
+  .experimental-badge-text {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    color: var(--md-on-error-container);
+  }
+
+  .hide-mode-warning {
+    display: none;
+    margin-top: 10px;
+    padding: 8px 12px;
+    background: var(--md-error-container);
+    border-radius: var(--md-radius-md);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--md-on-error-container);
+    text-align: center;
+  }
+
+  .hide-mode-warning.visible {
+    display: block;
+  }
+
   .advanced-toggle {
     display: flex;
     align-items: center;
@@ -277,6 +309,11 @@
     background: var(--md-primary-container);
   }
 
+  .switch.on::after {
+    background: var(--md-on-primary-container);
+    transform: translateX(16px);
+  }
+
   .github-link {
     display: flex;
     align-items: center;
@@ -298,10 +335,6 @@
     flex-shrink: 0;
   }
 
-  .switch.on::after {
-    background: var(--md-on-primary-container);
-    transform: translateX(16px);
-  }
 </style>
 </head>
 <body>
@@ -339,20 +372,23 @@
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M600-400v-80h320v80H600ZM440-120 313-234q-72-65-123.5-116t-85-96q-33.5-45-49-87T40-621q0-94 63-156.5T260-840q52 0 99 21.5t81 61.5q34-40 81-61.5t99-21.5q85 0 142.5 51.5T834-668q-18-7-36-10.5t-35-3.5q-101 0-172 70.5T520-440q0 52 21 98.5t59 79.5q-19 17-49.5 43.5T498-172l-58 52Z"/></svg>
         Dislike
       </div>
-      <div class="mode-option disabled" data-mode="hide" title="Coming soon">
+      <div class="mode-option" data-mode="hide">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="m791-55-91-91q-49 32-104.5 49T480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-60 17-115.5T146-700l-91-91 57-57 736 736-57 57ZM480-160q43 0 83.5-11t78.5-33L204-642q-22 38-33 78.5T160-480q0 133 93.5 226.5T480-160Zm334-100-58-58q22-38 33-78.5t11-83.5q0-133-93.5-226.5T480-800q-43 0-83.5 11T318-756l-58-58q49-32 104.5-49T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 60-17 115.5T814-260ZM537-537ZM423-423Z"/></svg>
         Not interested
+        <span class="experimental-badge"><span class="experimental-badge-text">experimental</span></span>
       </div>
     </div>
+
+    <div class="hide-mode-warning" id="hideModeWarning">Not interested cannot be undone once submitted.</div>
 
     <div class="advanced-toggle" id="advancedToggle">
       Advanced
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="M480-345 240-585l56-56 184 184 184-184 56 56-240 240Z"/></svg>
     </div>
     <div class="advanced-panel" id="advancedPanel">
-      <div class="advanced-option" id="cookieSpeedupOption">
-        <span>Speed up using cookies (experimental)</span>
-        <div class="switch" id="cookieSpeedupSwitch"></div>
+      <div class="advanced-option" id="dislikeApiOption">
+        <span>Show dislike count</span>
+        <div class="switch" id="dislikeApiSwitch"></div>
       </div>
     </div>
 

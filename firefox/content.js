@@ -139,17 +139,17 @@
     return status ? status + " Error" : "Connection Error";
   }
 
-  var cookieSpeedupEnabled = true;
   var dislikeMode = "dislike";
+  var showDislikeCountEnabled = true;
 
   function loadSettings() {
     try {
-      browser.storage.local.get("cookieSpeedup").then(function (result) {
-        cookieSpeedupEnabled = result.cookieSpeedup !== false;
+      browser.storage.local.get("showDislikeCount").then(function (result) {
+        showDislikeCountEnabled = result.showDislikeCount !== false;
       });
       browser.storage.onChanged.addListener(function (changes, area) {
         if (area !== "local") return;
-        if (changes.cookieSpeedup) cookieSpeedupEnabled = changes.cookieSpeedup.newValue !== false;
+        if (changes.showDislikeCount) showDislikeCountEnabled = changes.showDislikeCount.newValue !== false;
       });
     } catch (e) {}
   }
@@ -474,7 +474,7 @@
       } else {
         text.textContent = "Dislike";
         var videoId = videoIdForElement(target);
-        if (videoId) {
+        if (videoId && showDislikeCountEnabled) {
           fetchDislikeCount(videoId, function (result) {
             if (result.error) {
               text.textContent = result.error;
@@ -504,10 +504,6 @@
 
         if (btn.dataset.loading === "true" || btn.dataset.pressed === "true") return;
 
-        if (!cookieSpeedupEnabled) {
-          console.warn("[Return Shorts Dislike] Not interested requires \"Speed up using cookies\" to be enabled.");
-          return;
-        }
         var token = feedbackTokenForElement(target);
         if (!token) {
           console.warn("[Return Shorts Dislike] Could not find a feedbackToken for this Short.", target);
@@ -547,7 +543,7 @@
 
       if (btn.dataset.loading === "true") {
         var pendingRequestId = btn.dataset.requestId;
-        if (cookieSpeedupEnabled && abortControllers[pendingRequestId]) {
+        if (abortControllers[pendingRequestId]) {
           abortControllers[pendingRequestId].abort();
           delete abortControllers[pendingRequestId];
         } else {
@@ -596,7 +592,7 @@
       btn.dataset.loading = "true";
       setSpinner(btn, true);
 
-      if (cookieSpeedupEnabled && videoIdForClick) {
+      if (videoIdForClick) {
         var action = next ? "dislike" : "removelike";
         sendLikeActionViaCookie(action, videoIdForClick, requestId, function (ok, status) {
           stopLoading(btn);
@@ -616,7 +612,7 @@
       likeBtn.addEventListener("click", function () {
         if (btn.dataset.loading === "true") {
           var pendingRequestId2 = btn.dataset.requestId;
-          if (cookieSpeedupEnabled && abortControllers[pendingRequestId2]) {
+          if (abortControllers[pendingRequestId2]) {
             abortControllers[pendingRequestId2].abort();
             delete abortControllers[pendingRequestId2];
           } else {
