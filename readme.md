@@ -18,4 +18,4 @@ On every Shorts page, the extension finds the real Like button and inserts a "Di
 
 **2. The dislike is sent using your own session cookies**
 
-Clicking it sends the same request YouTube's own Dislike button sends, straight from the page using your existing login cookies — no extra tab, no page reload.
+Clicking it sends the same request YouTube's own Dislike button sends, straight from the page using your existing login cookies.
